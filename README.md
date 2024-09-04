@@ -6,7 +6,7 @@ Date: 2024-03-01
 
 **Project Overview**
 
-This project aims to analyze Instagram comments from posts related to two of the most followed sports personalities: Lionel Messi and Cristiano Ronaldo. The analysis is focused on exploring the sentiment of the comments, particularly regarding the popular “GOAT” (Greatest of All Time) debate, and extracting insights from the usage of emojis and mentions of each other in the comments.
+This project aims to analyze Instagram comments from posts related to two of the most followed sports personalities: Lionel Messi and Cristiano Ronaldo. The analysis is focused on exploring the sentiment of the comments by deploying sentiment analysis models and natural language processing, particularly regarding the popular “GOAT” (Greatest of All Time) debate, and extracting insights from the usage of emojis and mentions of each other in the comments.
 
 **Data Collection**
 
