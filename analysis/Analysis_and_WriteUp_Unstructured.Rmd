@@ -1,0 +1,200 @@
+---
+title: "Analysis and Write-up"
+author: "David Li"
+date: "2024-03-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Introduction
+
+Learning to scrape unlocked many possibilities for conducting analyses, especially on data that I care about. Instagram—a platform where I spend an average of an hour or two per day—contains an insane amount of data. Specifically, I wanted to explore the Instagram comments of celebrities and conduct sentiment analysis on them.
+
+For one of my previous projects, I explored data aggregation to settle the GOAT (Greatest Of All Time) debate between LeBron James and Michael Jordan. I wanted to expand on that for this project. I looked up the most followed accounts on Instagram and came across the two sports giants, Lionel Messi and Cristiano Ronaldo. Not only are they constantly debated over who is the greatest of all time, but they are also two of the most followed personalities in the entire world. This meant that there was a huge amount of comments on which I could conduct analysis, and hopefully settle this debate as well through the lens of the fans that follow each athlete on Instagram.
+
+```{r}
+load('~/Desktop/ND Mod3/Unstructured/Project/ig_comments_data.Rdata')
+```
+
+### Data Overview
+
+The data used in this project were comments scraped directly from Instagram. Due to the dynamic nature of the website and its being backed by Meta, their website is very well protected against actions such as scraping. So much so, that the account I used got banned after one day of scraping comments. The exact script used for scraping can be seen in the file "ig_comments_scraping_process.py".
+
+```{r}
+head(messi_combined[,1],10)
+```
+```{r}
+nrow(messi_combined)
+```
+```{r}
+nrow(cr7_combined)
+```
+
+In the end, I was able to gather 1,809 rows of comments for Messi and 2,302 rows of comments for Ronaldo. There were also a few data frames I scraped which I did not end up using for analysis.
+
+### GOAT Comments
+
+The following analysis will compare the frequency and percentage of comments mentioning the popular term "GOAT," which stands for "The Greatest of All Time." The GOAT debate between Messi and Ronaldo is ongoing and arguably more prevalent than the debate between LeBron and Jordan, partly because Messi and Ronaldo coexisted in the same era of football. Although it was not possible to scrape every single post, we still obtained a decent sample size of comments. Perhaps the percentage of comments including "GOAT" will provide us with a snapshot of how each fanbase views their idols.
+
+##### RONALDO - GOAT Comments
+```{r}
+goat_cr7 <- grepl('([Gg][Oo][Aa][Tt]|[Gg].[Oo].[Aa].[Tt].|🐐)', cr7_combined$comment)
+sum(goat_cr7)
+```
+```{r}
+paste0(round((sum(goat_cr7)/nrow(cr7_combined)*100),2),'%')
+```
+
+##### MESSI - GOAT Comments
+```{r}
+goat_messi <- grepl('([Gg][Oo][Aa][Tt]|[Gg].[Oo].[Aa].[Tt].|🐐)', messi_combined$comment)
+sum(goat_messi)
+```
+```{r}
+paste0(round((sum(goat_messi)/nrow(messi_combined)*100),2),'%')
+```
+It appears that a significantly larger proportion of Messi's comments mention the word "GOAT." This observation could provide insights into the passion of each fanbase for their respective idol being considered the best player of all time, with Messi's percentage being approximately 1.5 times that of Ronaldo's.
+
+
+### Mentions of Each Other in the Comments
+Now, let's examine how often each individual is mentioned in the other person's Instagram comments.
+```{r}
+# Ronaldo in Messi's comments
+Cr7inMessi <- grepl('[Rr][Oo][Nn][Aa][Ll][Dd][Oo]', messi_combined$comment)
+paste0(round((sum(Cr7inMessi)/nrow(messi_combined)*100),2),'%')
+```
+```{r}
+# Messi in Ronaldo's comments
+MESSI_in_CR7 <- grepl('[Mm][Ee][Ss][Ss][Ii]', cr7_combined$comment)
+paste0(round((sum(MESSI_in_CR7)/nrow(cr7_combined)*100),2),'%')
+```
+There is a significant discrepancy in how often Ronaldo is mentioned in Messi's comments compared to the reverse. There are two ways to interpret this. Some of these comments might be from Ronaldo fans stating "Ronaldo is better," or they could be from Messi fans mentioning Ronaldo's name to diminish his stature. One could also suggest that Messi lives "rent-free" in the minds of Ronaldo fans, who seem compelled to bring him up even in the comments of the other persons' posts.
+
+### Emoji Sentiment Analysis
+
+Due to the international nature of the sport, the comments come in various languages. 
+Most comments are too short for any language detection packages to accurately identify the language. However, one of the hallmarks of Instagram comments is the surplus of emojis being used. Not only do emojis transcend language barriers, but there is also a plethora of them within these comments—more than enough to draw potential insights. Therefore, let's conduct a sentiment analysis based on the emojis in each person's comments and compare the two.
+```{r}
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(readr))
+
+emoji_sentiment <- read_csv("~/Desktop/ND Mod3/Unstructured/Project/Emoji Sent/Emoji_Sentiment_Data_v1.0.csv")
+```
+
+To retrieve accurate sentiment measures reflecting the true emoji sentiment score for each emoji, I imported a dataset that contains recorded occurrences of whether each use of a certain emoji is in a "positive", "negative", or "neutral" tone.
+
+```{r}
+head(emoji_sentiment[,c(1,3,4,5,6)])
+```
+Using the above table, we can then calculate a score for each emoji using the formula below:
+$$Sentiment Score = (Postive - Negative)/Occurences$$
+```{r}
+emoji_sentiment$Sent_score <- (emoji_sentiment$Positive - emoji_sentiment$Negative) / (emoji_sentiment$Positive + emoji_sentiment$Negative + emoji_sentiment$Neutral)
+
+calculate_emoji_sentiment <- function(comment, emoji_sentiment) {
+  emojis <- str_extract_all(comment, "[\\x{1F600}-\\x{1F64F}\\x{1F300}-\\x{1F5FF}\\x{1F680}-\\x{1F6FF}\\x{1F700}-\\x{1F77F}\\x{1F780}-\\x{1F7FF}\\x{1F800}-\\x{1F8FF}\\x{1F900}-\\x{1F9FF}\\x{1FA00}-\\x{1FA6F}\\x{1FA70}-\\x{1FAFF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}]")[[1]]
+  
+  scores <- sapply(emojis, function(emoji) {
+    row <- emoji_sentiment %>% filter(Emoji == emoji)
+    if (nrow(row) == 0) return(NA)
+    score <- (row$Positive - row$Negative) / (row$Positive + row$Negative + row$Neutral)
+    return(score)
+  })
+  
+  if (length(scores) == 0 || all(is.na(scores))) return(NA)
+  mean(scores, na.rm = TRUE)
+}
+
+# CR7
+cr7_combined$emoji_sentiment <- sapply(cr7_combined$comment, calculate_emoji_sentiment, emoji_sentiment = emoji_sentiment)
+
+cr7_emojis <- cr7_combined[!is.na(cr7_combined$emoji_sentiment),]
+
+mean(cr7_emojis$emoji_sentiment)
+
+# Messi
+messi_combined$emoji_sentiment <- sapply(messi_combined$comment, calculate_emoji_sentiment, emoji_sentiment = emoji_sentiment)
+
+messi_emojis <- messi_combined[!is.na(messi_combined$emoji_sentiment),]
+
+mean(messi_emojis$emoji_sentiment)
+```
+From the perspective of emoji usage and the sentiment of the emojis, Ronaldo wins the battle of having the most supportive fans.
+
+### Visualizations of Emoji Usage
+This process involved a lot of trial and error, along with attempts using different packages within R. ggplot2 was not very handy in this situation, as my vision was to create a scatter plot with frequency against its sentiment score, with the emojis being the actual plot points. However, no matter how many workarounds I tried, they would always show up as blank square boxes. Plotly was the only package that allowed emojis to be displayed properly.
+```{r}
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(emoGG))
+suppressPackageStartupMessages(library(ggtext))
+suppressPackageStartupMessages(library(plotly))
+
+# Ronaldo's Emoji Plot
+emoji_pattern <- "[\\x{1F600}-\\x{1F64F}\\x{1F300}-\\x{1F5FF}\\x{1F680}-\\x{1F6FF}\\x{1F700}-\\x{1F77F}\\x{1F780}-\\x{1F7FF}\\x{1F800}-\\x{1F8FF}\\x{1F900}-\\x{1F9FF}\\x{1FA00}-\\x{1FA6F}\\x{1FA70}-\\x{1FAFF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}]"
+
+cr7_emojis_only <- unlist(str_extract_all(cr7_emojis$comment, emoji_pattern))
+
+cr7_freq <- table(cr7_emojis_only)
+cr7_freq_df <- as.data.frame(cr7_freq)
+names(cr7_freq_df) <- c("Emoji", "frequency")
+
+cr7_emoji_sentiment_df <- merge(cr7_freq_df, emoji_sentiment, by = "Emoji")
+
+fig_cr7 <- plot_ly(data = cr7_emoji_sentiment_df, x = ~Sent_score, y = ~frequency,
+               type = 'scatter', mode = 'markers+text',
+               text = ~Emoji, textposition = 'top center',
+               marker = list(size = 8, color = 'LightSkyBlue'))
+
+fig_cr7 <- fig_cr7 %>% layout(title = "Ronaldo's Emoji Sentiment and Frequency",
+                      xaxis = list(title = 'Sentiment Score'),
+                      yaxis = list(title = 'Frequency'),
+                      font = list(family = "Arial, sans-serif", size = 18, color = "#6c6c6c"))
+
+fig_cr7
+```
+
+
+```{r}
+# Messi's Emoji Plot
+emoji_pattern <- "[\\x{1F600}-\\x{1F64F}\\x{1F300}-\\x{1F5FF}\\x{1F680}-\\x{1F6FF}\\x{1F700}-\\x{1F77F}\\x{1F780}-\\x{1F7FF}\\x{1F800}-\\x{1F8FF}\\x{1F900}-\\x{1F9FF}\\x{1FA00}-\\x{1FA6F}\\x{1FA70}-\\x{1FAFF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}]"
+
+messi_emojis_only <- unlist(str_extract_all(messi_emojis$comment, emoji_pattern))
+
+messi_freq <- table(messi_emojis_only)
+messi_freq_df <- as.data.frame(messi_freq)
+names(messi_freq_df) <- c("Emoji", "frequency")
+
+Messi_emoji_sentiment_df <- merge(messi_freq_df, emoji_sentiment, by = "Emoji")
+
+fig_messi<- plot_ly(data = Messi_emoji_sentiment_df, x = ~Sent_score, y = ~frequency,
+               type = 'scatter', mode = 'markers+text',
+               text = ~Emoji, textposition = 'top center',
+               marker = list(size = 8, color = 'LightSkyBlue'))
+
+fig_messi <- fig_messi %>% layout(title = "Messi's Emoji Sentiment and Frequency",
+                      xaxis = list(title = 'Sentiment Score'),
+                      yaxis = list(title = 'Frequency'),
+                      font = list(family = "Arial, sans-serif", size = 18, color = "#6c6c6c"))
+
+fig_messi
+```
+
+The most frequently used emojis are extremely similar for both athletes for the most part, with notable mentions including Messi receiving a lot more comments containing "💩" and "😂".
+
+##### RONALDO - SIUU Comments
+```{r}
+siu <- grepl('([Ss][Ii]+[Uu]+|[Ss][Uu]+[Ii]+)',cr7_combined$comment)
+paste0(round((sum(siu)/nrow(cr7_combined)*100),2),'%')
+```
+Discovering that 2.52% of the comments contain the phrase "Siu" was an intriguing find. "Siu" is Ronaldo's signature goal celebration shout, characterized by his leap and pose with arms spread out or down by his sides. This iconic celebration, symbolizing Ronaldo's joy and confidence, has become widely recognized in football culture.
+
+Knowing the above percentage, I am now curious how much of this phrase can be found in Messi's comments.
+```{r}
+siu_in_messi <- grepl('([Ss][Ii]+[Uu]+|[Ss][Uu]+[Ii]+)', messi_combined$comment)
+paste0(round((sum(siu_in_messi)/nrow(messi_combined) * 100), 2), '%')
+```
+Interestingly enough, a small amount of Ronaldo's catch phrase can be found in Messi's comments as well.
+
