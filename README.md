@@ -29,22 +29,26 @@ The data consists of comments scraped directly from Instagram posts of Messi and
 1. GOAT Comments Analysis
 
 	•	The frequency and percentage of comments containing the term “GOAT” were calculated for both Messi and Ronaldo.
-	•	Findings: A significantly larger proportion of Messi’s comments mentioned the word “GOAT” compared to Ronaldo’s, suggesting a stronger association with the title among Messi’s fanbase.
+	
+ •	Findings: A significantly larger proportion of Messi’s comments mentioned the word “GOAT” compared to Ronaldo’s, suggesting a stronger association with the title among Messi’s fanbase.
 
 2. Cross Mentions in Comments
 
-	•	The frequency of mentions of Ronaldo in Messi’s comments and vice versa was analyzed.
-	•	Findings: Ronaldo was mentioned more frequently in Messi’s comments than Messi was in Ronaldo’s comments, indicating a potential psychological impact or rivalry between the fanbases.
+•	The frequency of mentions of Ronaldo in Messi’s comments and vice versa was analyzed.
+	
+ •	Findings: Ronaldo was mentioned more frequently in Messi’s comments than Messi was in Ronaldo’s comments, indicating a potential psychological impact or rivalry between the fanbases.
 
 3. Emoji Sentiment Analysis
 
-	•	An emoji-based sentiment analysis was conducted using a pre-existing emoji sentiment dataset.
-	•	Findings: Ronaldo’s comments had a slightly higher average sentiment score compared to Messi’s, suggesting more positive emoji usage among Ronaldo’s fans.
+•	An emoji-based sentiment analysis was conducted using a pre-existing emoji sentiment dataset.
+	
+ •	Findings: Ronaldo’s comments had a slightly higher average sentiment score compared to Messi’s, suggesting more positive emoji usage among Ronaldo’s fans.
 
 4. SIUU Comments Analysis
 
-	•	The frequency of the phrase “SIUU,” Ronaldo’s signature celebration shout, was analyzed in both Ronaldo’s and Messi’s comments.
-	•	Findings: The phrase appeared in a notable percentage of Ronaldo’s comments and even a smaller percentage in Messi’s comments, showcasing its widespread recognition.
+•	The frequency of the phrase “SIUU,” Ronaldo’s signature celebration shout, was analyzed in both Ronaldo’s and Messi’s comments.
+	
+ •	Findings: The phrase appeared in a notable percentage of Ronaldo’s comments and even a smaller percentage in Messi’s comments, showcasing its widespread recognition.
 
 **Visualization**
 
