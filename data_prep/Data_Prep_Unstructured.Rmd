@@ -1,0 +1,150 @@
+---
+title: "Unstructured Project - Data Prep"
+author: "David Li"
+date: "2024-02-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This RMarkdown file is primarily intended for preparing raw data. The CSV files, which contain comments directly scraped from various profiles/posts on Instagram, are quite messy. Moreover, the cleaning process varies for each posts' comments due to the dynamic nature of the website, requiring the creation of individual cleaning functions.
+
+Caitlin Campbell
+```{r}
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(textcat))
+
+# Caitlin Campbell
+cc_100k <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/CC_hate/100k_followers.csv')
+cc_2024_is_off<- read.csv('~/Desktop/ND Mod3/Unstructured/Project/CC_hate/2024_is_off.csv')
+cc_cant_wait <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/CC_hate/Cannot_wait_for_trailer.csv')
+
+```
+
+```{r}
+# Building a function to clean all initial csv's pulled in from playwright
+csv_cleaner <- function(df) {
+  df <- df[-c(1:14, (nrow(df)-17+1):nrow(df)), ,drop = FALSE]
+  
+  rows_to_remove <- grepl("Reply", df$comment)|
+    grepl("View all \\d+ replies", df$comment, perl = TRUE)|
+    grepl("\\d+w", df$comment)|
+    grepl("\\d+d", df$comment)|
+    grepl("\\d+h", df$comment)|
+    grepl("\\d+m", df$comment)|
+    grepl("See translation", df$comment)
+  
+  df <- df[!rows_to_remove, ,drop = FALSE]
+  return(df)
+} 
+# The returned data frame now has username, comment, comment like amount.
+# Some comments don't have a like amount.
+```
+
+```{r}
+# Function to reshape
+csv_reshaper <- function(df){
+  
+  reshaped <- data.frame(username=character(), 
+                     comment=character(), 
+                     likes=numeric(), 
+                     stringsAsFactors=FALSE)
+
+    i <- 1
+    while(i <= nrow(df)) {
+      # Check if the current row is a username
+      if(grepl("^\\S+$", df$comment[i])) {
+        username <- df$comment[i]
+        comment <- NA
+        likes <- NA
+        
+        # Increment i to get to the comment
+        i <- i + 1
+        if(i <= nrow(df) && !grepl("^\\S+$", df$comment[i])) {
+          comment <- df$comment[i]
+        }
+        
+        # Check for likes
+       if(i + 1 <= nrow(df) && grepl("^\\d{1,3}(,\\d{3})*( like| likes)$", df$comment[i + 1])) {
+          likes_str <- gsub(" likes| like", "", df$comment[i + 1])
+          likes <- as.numeric(gsub(",", "", likes_str)) # Remove commas before conversion
+          i <- i + 1 # Increment i past the likes
+        }
+    
+        # Append the data to the new dataframe
+        reshaped <- rbind(reshaped, data.frame(username, comment, likes, stringsAsFactors=FALSE))
+      }
+      i <- i + 1
+    }
+  reshaped <- reshaped[!is.na(reshaped$comment),]
+  reshaped$likes[is.na(reshaped$likes)] <- 0
+
+  return(reshaped)
+}
+
+```
+
+Combining the three
+```{r}
+cc_100k <- csv_cleaner(cc_100k)
+cc_100k_reshaped <- csv_reshaper(cc_100k)
+
+cc_2024_is_off <- csv_cleaner(cc_2024_is_off)
+cc_2024_is_off_reshaped <- csv_reshaper(cc_2024_is_off)
+
+cc_cant_wait <- csv_cleaner(cc_cant_wait)
+cc_cant_wait_reshaped <- csv_reshaper(cc_cant_wait)
+
+cc_combined <- rbind(cc_100k_reshaped, cc_2024_is_off_reshaped, cc_cant_wait_reshaped)
+```
+
+Ronaldo
+```{r}
+cr7_1 <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/ronaldo/1st.csv')
+cr7_2 <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/ronaldo/2nd.csv')
+cr7_3 <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/ronaldo/3rd.csv')
+
+cr7_combined <- rbind(cr7_1, cr7_2, cr7_3)
+
+cr7_combined$language <- sapply(cr7_combined$comment, textcat)
+```
+
+Messi
+```{r}
+messi_1 <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/messi/1st.csv')
+messi_2 <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/messi/2nd.csv')
+messi_3 <- read.csv('~/Desktop/ND Mod3/Unstructured/Project/messi/3rd.csv')
+
+messi_csv_cleaner <- function(df) {
+  df <- df[-c(1:14, (nrow(df)-17+1):nrow(df)), ,drop = FALSE]
+  
+  rows_to_remove <- grepl("Reply", df$comment)|
+    grepl("View all \\d+ replies", df$comment, perl = TRUE)|
+    grepl("\\d+w", df$comment)|
+    grepl("\\d+d", df$comment)|
+    grepl("\\d+h", df$comment)|
+    grepl("\\d+m", df$comment)|
+    grepl("See translation", df$comment)|
+    grepl('(\\d+ likes|\\d+ like)', df$comment)|
+    grepl('^(?!^[Gg][Oo][Aa][Tt]$|^[Rr][Oo][Nn][Aa][Ll][Dd][Oo]$|^[Cc][Rr]7$|^[Mm][Ee][Ss][Ss][Ii]$)\\S+$', df$comment, perl = TRUE)
+  
+  df <- df[!rows_to_remove, ,drop = FALSE]
+  return(df)
+} 
+
+messi_1 <- messi_csv_cleaner(messi_1)
+messi_2 <- messi_csv_cleaner(messi_2)
+messi_3 <- messi_csv_cleaner(messi_3)
+
+messi_combined <- rbind(messi_1, messi_2, messi_3)
+
+messi_combined$language <- sapply(messi_combined$comment, textcat)
+```
+
+Saving all final variables for analysis.
+```{r}
+save(cc_100k_reshaped, cc_2024_is_off_reshaped, cc_cant_wait_reshaped, cc_combined, cr7_combined, messi_combined, file = 'ig_comments_data.Rdata')
+```
+
